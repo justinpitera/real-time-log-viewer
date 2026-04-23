@@ -2,10 +2,10 @@
 A simple server that generates fake logs and streams them to the browser in real time.
 
 It creates a new log every second, keeps the last 500 logs in memory, and sends them
-to all connected Websocket clients. When someone connects, they first receive the
+to all connected WebSocket clients. When a client connects, they first receive the
 existing logs, then continue getting new ones live.
 
-Built as a light weight demo.
+Built as a lightweight demo.
 """
 
 import asyncio
@@ -22,6 +22,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 class LogViewerState:
     def __init__(self) -> None:
+        # Bounded buffer so new clients can receive recent logs on connect
         self.log_buffer: deque[dict[str, Any]] = deque(maxlen=500)
         self.clients: set[WebSocket] = set()
         self.generator_task: asyncio.Task[Any] | None = None
@@ -106,7 +107,7 @@ async def websocket_logs(websocket: WebSocket) -> None:
 
 if __name__ == "__main__":
     print(
-        "⚠️  Do not run this file directly.\n\n"
+        "Do not run this file directly.\n\n"
         "Run the server using:\n"
         'uv run uvicorn main:app --host 0.0.0.0 --port 8000'
     )
