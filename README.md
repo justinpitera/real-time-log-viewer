@@ -78,11 +78,10 @@ cd server
 uv run ruff check .
 ```
 
-Or install the pre-commit hooks to run automatically on every commit:
+To run checks automatically on every commit, configure git to use the bundled hooks:
 
 ```bash
-pip install pre-commit
-pre-commit install
+git config core.hooksPath .githooks
 ```
 
 ## Project structure
@@ -100,6 +99,7 @@ pre-commit install
 │   ├── pyproject.toml
 │   ├── uv.lock
 │   └── Dockerfile     # Builds the Python backend image
-├── docker-compose.yml # Brings up both services together
-└── .pre-commit-config.yaml
+├── .githooks/
+│   └── pre-commit     # Runs ruff + JS syntax check before each commit
+└── docker-compose.yml # Brings up both services together
 ```

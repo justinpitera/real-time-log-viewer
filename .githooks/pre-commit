@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PASS=true
+
+echo "Linting Python (ruff)"
+if ! uv run --directory server ruff check .; then
+  PASS=false
+fi
+
+echo "Linting JS (node --check)"
+while IFS= read -r -d '' file; do
+  if ! node --check "$file"; then
+    echo "Syntax error in: $file"
+    PASS=false
+  fi
+done < <(find client -name "*.js" -print0)
+
+if [ "$PASS" = false ]; then
+  echo ""
+  echo "Commit blocked: fix lint errors above."
+  exit 1
+fi
+
+echo "All checks passed."
