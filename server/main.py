@@ -18,8 +18,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 
 class LogViewerState:
@@ -87,13 +85,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-@app.get("/")
-async def serve_index() -> FileResponse:
-    return FileResponse("static/index.html")
 
 
 @app.websocket("/ws/logs")
