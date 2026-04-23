@@ -1,5 +1,5 @@
 // Init States
-const WS_URL = 'ws://localhost:8000/ws/logs';
+const WS_URL = `ws://${window.location.hostname}:8000/ws/logs`;
 const LEVELS = {
   DEBUG: { badge: 'badge-debug', msg: 'text-zinc-400',  row: '' },
   INFO:  { badge: 'badge-info',  msg: 'text-sky-300',   row: '' },
@@ -31,9 +31,17 @@ const $count      = document.getElementById('total-count');
 function connect() {
   setStatus('connecting');
   ws = new WebSocket(WS_URL);
-  ws.onopen    = () => setStatus('connected');
-  ws.onclose   = () => { ws = null; setStatus('disconnected'); };
-  ws.onerror   = () => { ws = null; setStatus('disconnected'); };
+  ws.onopen = () => setStatus('connected');
+  ws.onerror = () => {
+    ws = null;
+    setStatus('disconnected');
+    addLog({ level: 'ERROR', message: 'Failed to connect to WebSocket server.' });
+  };
+  ws.onclose = () => {
+    ws = null;
+    setStatus('disconnected');
+    addLog({ level: 'WARN', message: 'WebSocket connection closed.' });
+  };
   ws.onmessage = (e) => {
     let raw;
     try { raw = JSON.parse(e.data); }
