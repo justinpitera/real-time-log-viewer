@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log Viewer — Internal Tools</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', '"Fira Code"', 'Cascadia Code', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-zinc-950 text-zinc-100 h-screen flex flex-col overflow-hidden" style="font-family: Inter, system-ui, sans-serif;">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="flex-shrink-0 border-b border-zinc-800 bg-zinc-900">
+    <div class="px-5 h-14 flex items-center justify-between gap-4">
+
+      <!-- Brand -->
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-violet-600 flex items-center justify-center shadow-lg shadow-sky-900/30 flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-sm font-semibold text-white leading-none tracking-tight">Log Viewer</h1>
+          <p class="text-[11px] text-zinc-500 leading-none mt-0.5 font-medium">Real-time stream</p>
+        </div>
+      </div>
+
+      <!-- Connection controls -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        <div id="ws-dot" class="w-2 h-2 rounded-full bg-zinc-600 flex-shrink-0"></div>
+        <span id="ws-status" class="text-xs text-zinc-500 font-medium tabular-nums hidden sm:block">Disconnected</span>
+        <button id="ws-toggle-btn" onclick="toggleConnection()"
+          class="px-3 py-1.5 text-xs font-medium rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 hover:border-zinc-600 transition-all duration-150 cursor-pointer">
+          Connect
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ── Toolbar ──────────────────────────────────────────────────────────── -->
+  <div class="flex-shrink-0 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+    <div class="px-5 h-11 flex items-center gap-2 overflow-x-auto scrollbar-none">
+
+      <!-- Pause / Resume -->
+      <button id="pause-btn" onclick="togglePause()"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 hover:border-zinc-600 transition-all duration-150 flex-shrink-0 cursor-pointer">
+        <svg id="pause-icon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
+        </svg>
+        <svg id="resume-icon" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 24 24">
+          <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+        </svg>
+        <span id="pause-label">Pause</span>
+      </button>
+
+      <button onclick="clear()"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-zinc-800 hover:bg-red-900/50 text-zinc-300 hover:text-red-300 border border-zinc-700 hover:border-red-800/70 transition-all duration-150 flex-shrink-0 cursor-pointer">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+        </svg>
+        Clear
+      </button>
+
+      <div class="h-5 w-px bg-zinc-700/60 mx-1 flex-shrink-0"></div>
+
+      <!-- Level filters -->
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <button class="level-filter active" data-level="ALL" onclick="setFilter('ALL')">All</button>
+        <button class="level-filter" data-level="INFO" onclick="setFilter('INFO')">Info</button>
+        <button class="level-filter" data-level="WARN" onclick="setFilter('WARN')">Warn</button>
+        <button class="level-filter" data-level="ERROR" onclick="setFilter('ERROR')">Error</button>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <!-- Auto-scroll toggle -->
+      <label class="flex items-center gap-2 cursor-pointer select-none flex-shrink-0">
+        <div class="relative">
+          <input type="checkbox" id="autoscroll" class="sr-only peer" checked />
+          <div class="w-8 h-[18px] bg-zinc-700 rounded-full peer-checked:bg-sky-600 transition-colors duration-200"></div>
+          <div class="absolute top-[3px] left-[3px] w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-[14px]"></div>
+        </div>
+        <span class="text-[11px] text-zinc-500 font-medium">Auto-scroll</span>
+      </label>
+
+    </div>
+  </div>
+
+  <!-- ── Log Area ─────────────────────────────────────────────────────────── -->
+  <main class="flex-1 overflow-hidden relative">
+
+    <!-- Empty state -->
+    <div id="empty-state" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+      <div class="text-center">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zinc-800/60 flex items-center justify-center border border-zinc-700/40">
+          <svg class="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+          </svg>
+        </div>
+        <p class="text-sm font-semibold text-zinc-500">No logs yet</p>
+        <p class="text-xs text-zinc-700 mt-1">Connect to a WebSocket stream to begin</p>
+      </div>
+    </div>
+
+    <div id="log-container" class="h-full overflow-y-auto">
+      <div id="log-entries" class="p-2 space-y-px min-h-full"></div>
+    </div>
+
+  </main>
+
+  <!-- ── Status Bar ───────────────────────────────────────────────────────── -->
+  <footer class="flex-shrink-0 border-t border-zinc-800 bg-zinc-900 px-5 h-8 flex items-center justify-between gap-4">
+
+    <div class="flex items-center gap-4 text-[11px]">
+      <span class="text-zinc-600">
+        <span id="total-count" class="text-zinc-400 font-semibold tabular-nums">0</span>
+        <span class="ml-1">entries</span>
+      </span>
+
+    </div>
+
+    <span id="ws-url-display" class="font-mono text-[10px] text-zinc-700 hidden sm:block">ws://localhost:8000/ws/logs</span>
+
+  </footer>
+
+  <script src="scripts.js"></script>
+</body>
+</html>
