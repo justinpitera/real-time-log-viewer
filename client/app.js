@@ -11,6 +11,7 @@ let ws = null;
 let paused = false;
 let buffer = [];
 let levelFilter = 'ALL';
+let nearBottom = true;
 
 // DOM
 const $entries    = document.getElementById('log-entries');
@@ -106,6 +107,8 @@ function addLog(raw) {
 }
 
 function appendEntry(entry) {
+  const shouldScroll = $autoscroll.checked && nearBottom;
+
   const cfg = LEVELS[entry.level];
   const ts  = entry.ts.toLocaleTimeString('en-US', { hour12: false })
               + '.' + String(entry.ts.getMilliseconds()).padStart(3, '0');
@@ -122,7 +125,7 @@ function appendEntry(entry) {
   `;
   $entries.appendChild(row);
   $count.textContent = $entries.childElementCount;
-  if ($autoscroll.checked) scrollToBottom();
+  if (shouldScroll) scrollToBottom();
 }
 
 function escHtml(s) {
@@ -148,6 +151,5 @@ function scrollToBottom() {
 }
 
 $container.addEventListener('scroll', () => {
-  const nearBottom = $container.scrollHeight - $container.scrollTop - $container.clientHeight < 80;
-  if (!nearBottom) $autoscroll.checked = false;
+  nearBottom = $container.scrollHeight - $container.scrollTop - $container.clientHeight < 80;
 });
