@@ -1,3 +1,7 @@
+"""
+TODO: Write module desc
+"""
+
 import asyncio
 import contextlib
 import json
@@ -7,6 +11,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 
+import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -103,9 +108,13 @@ async def websocket_logs(websocket: WebSocket) -> None:
         app.state.shared.clients.discard(websocket)
         raise
 
-def main():
-    print("Hello from real-time-log-viewer!")
-
+async def main():
+    config = uvicorn.Config("main:app", host="0.0.0.0", port=5000, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
