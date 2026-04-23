@@ -1,3 +1,13 @@
+"""
+A simple server that generates fake logs and streams them to the browser in real time.
+
+It creates a new log every second, keeps the last 500 logs in memory, and sends them
+to all connected Websocket clients. When someone connects, they first receive the
+existing logs, then continue getting new ones live.
+
+Built as a light weight demo.
+"""
+
 import asyncio
 import contextlib
 import json
@@ -12,7 +22,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 
-class AppState:
+class LogViewerState:
     def __init__(self) -> None:
         self.log_buffer: deque[dict[str, Any]] = deque(maxlen=500)
         self.clients: set[WebSocket] = set()
@@ -20,7 +30,7 @@ class AppState:
 
 
 def build_log_entry() -> dict[str, str]:
-    severity = random.choice(["DEBUG", "INFO", "WARN", "ERROR"])
+    level = random.choice(["DEBUG", "INFO", "WARN", "ERROR"])
     message = random.choice(
         [
             "Connected to upstream service",
@@ -36,7 +46,7 @@ def build_log_entry() -> dict[str, str]:
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "severity": severity,
+        "level": level,
         "message": message,
     }
 
@@ -64,7 +74,7 @@ async def generate_logs(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.shared = AppState()
+    app.state.shared = LogViewerState()
     app.state.shared.generator_task = asyncio.create_task(generate_logs(app))
 
     try:
@@ -102,10 +112,3 @@ async def websocket_logs(websocket: WebSocket) -> None:
     except Exception:
         app.state.shared.clients.discard(websocket)
         raise
-
-def main():
-    print("Hello from real-time-log-viewer!")
-
-
-if __name__ == "__main__":
-    main()

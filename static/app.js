@@ -1,27 +1,18 @@
-const WS_URL = 'ws://localhost:8000/ws/logs';
-
+// Init States
+const WS_URL = `ws://${location.host}/ws/logs`;
 const LEVELS = {
+  DEBUG: { badge: 'badge-debug', msg: 'text-zinc-400',  row: '' },
   INFO:  { badge: 'badge-info',  msg: 'text-sky-300',   row: '' },
   WARN:  { badge: 'badge-warn',  msg: 'text-amber-300', row: 'row-warn' },
   ERROR: { badge: 'badge-error', msg: 'text-red-300',   row: 'row-error' },
 };
 
-// Normalize any incoming level string to INFO | WARN | ERROR
-function normalizeLevel(raw) {
-  const l = (raw || 'INFO').toUpperCase();
-  if (l === 'WARN' || l === 'WARNING')               return 'WARN';
-  if (l === 'ERROR' || l === 'FATAL' || l === 'CRITICAL') return 'ERROR';
-  return 'INFO';
-}
-
-// ── State ─────────────────────────────────────────────────────────────────────
 let ws = null;
 let paused = false;
 let buffer = [];
-let count = 0;
 let levelFilter = 'ALL';
 
-// ── DOM ───────────────────────────────────────────────────────────────────────
+// DOM
 const $entries    = document.getElementById('log-entries');
 const $container  = document.getElementById('log-container');
 const $emptyState = document.getElementById('empty-state');
@@ -35,7 +26,7 @@ const $wsBtn      = document.getElementById('ws-toggle-btn');
 const $autoscroll = document.getElementById('autoscroll');
 const $count      = document.getElementById('total-count');
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
+// Websocket
 function connect() {
   setStatus('connecting');
   ws = new WebSocket(WS_URL);
@@ -43,10 +34,10 @@ function connect() {
   ws.onclose   = () => { ws = null; setStatus('disconnected'); };
   ws.onerror   = () => { ws = null; setStatus('disconnected'); };
   ws.onmessage = (e) => {
-    let entry;
-    try { entry = JSON.parse(e.data); }
-    catch { entry = { level: 'INFO', message: e.data }; }
-    addLog(entry);
+    let raw;
+    try { raw = JSON.parse(e.data); }
+    catch { raw = { level: 'INFO', message: e.data }; }
+    addLog({ ...raw, level: raw.level });
   };
 }
 
@@ -59,7 +50,7 @@ function toggleConnection() {
   ws ? disconnect() : connect();
 }
 
-// ── Controls ──────────────────────────────────────────────────────────────────
+// Controls
 function togglePause() {
   paused = !paused;
   $pauseLabel.textContent = paused ? 'Resume' : 'Pause';
@@ -77,9 +68,8 @@ function togglePause() {
   }
 }
 
-function clear() {
+function clearLogs() {
   buffer = [];
-  count = 0;
   $entries.innerHTML = '';
   $count.textContent = '0';
   $emptyState.style.display = '';
@@ -95,9 +85,9 @@ function setFilter(level) {
   );
 }
 
-// ── Logging ───────────────────────────────────────────────────────────────────
+// Logging
 function addLog(raw) {
-  const level = normalizeLevel(raw.level);
+  const level = raw.level;
   const entry = {
     level,
     message: String(raw.message ?? ''),
@@ -105,10 +95,13 @@ function addLog(raw) {
     ts:      raw.timestamp ? new Date(raw.timestamp) : new Date(),
   };
 
-  $count.textContent = ++count;
   $emptyState.style.display = 'none';
 
-  if (paused) { buffer.push(entry); return; }
+  if (paused) {
+    buffer.push(entry);
+    $count.textContent = $entries.childElementCount + buffer.length;
+    return;
+  }
   appendEntry(entry);
 }
 
@@ -128,6 +121,7 @@ function appendEntry(entry) {
     <span class="log-msg ${cfg.msg}">${escHtml(entry.message)}</span>
   `;
   $entries.appendChild(row);
+  $count.textContent = $entries.childElementCount;
   if ($autoscroll.checked) scrollToBottom();
 }
 
@@ -135,7 +129,7 @@ function escHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// ── UI helpers ────────────────────────────────────────────────────────────────
+// UI 
 function setStatus(state) {
   const states = {
     connecting:   ['bg-yellow-400 animate-pulse', 'Connecting…',  'text-yellow-400',  'Disconnect'],
