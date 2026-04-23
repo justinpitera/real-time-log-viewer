@@ -104,10 +104,3 @@ async def websocket_logs(websocket: WebSocket) -> None:
     except Exception:
         app.state.shared.clients.discard(websocket)
         raise
-
-if __name__ == "__main__":
-    print(
-        "Do not run this file directly.\n\n"
-        "Run the server using:\n"
-        'uv run uvicorn main:app --host 0.0.0.0 --port 8000'
-    )
