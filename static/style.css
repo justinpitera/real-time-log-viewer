@@ -96,6 +96,11 @@ body { -webkit-font-smoothing: antialiased; }
 }
 
 /* ── Level badge variants ────────────────────────────────────────────────────── */
+.badge-debug {
+  background-color: rgba(39, 39, 42, 0.6);
+  color: #a1a1aa;
+  border-color: rgba(82, 82, 91, 0.5);
+}
 .badge-info {
   background-color: rgba(7, 89, 133, 0.35);
   color: #38bdf8;
