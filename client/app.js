@@ -1,5 +1,5 @@
 // Init States
-const WS_URL = `ws://${location.host}/ws/logs`;
+const WS_URL = 'ws://localhost:8000/ws/logs';
 const LEVELS = {
   DEBUG: { badge: 'badge-debug', msg: 'text-zinc-400',  row: '' },
   INFO:  { badge: 'badge-info',  msg: 'text-sky-300',   row: '' },

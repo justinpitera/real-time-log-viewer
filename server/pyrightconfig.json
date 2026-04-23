@@ -4,6 +4,6 @@
     "reportUnknownMemberType": false,
     "reportUnknownArgumentType": false,
     "reportGeneralTypeIssues": true,
-    "venvPath": ".",
+    "venvPath": "..",
     "venv": ".venv"
 }

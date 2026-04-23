@@ -18,8 +18,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 
 class LogViewerState:
@@ -88,13 +86,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-@app.get("/")
-async def serve_index() -> FileResponse:
-    return FileResponse("static/index.html")
-
 
 @app.websocket("/ws/logs")
 async def websocket_logs(websocket: WebSocket) -> None:
@@ -112,3 +103,10 @@ async def websocket_logs(websocket: WebSocket) -> None:
     except Exception:
         app.state.shared.clients.discard(websocket)
         raise
+
+if __name__ == "__main__":
+    print(
+        "⚠️  Do not run this file directly.\n\n"
+        "Run the server using:\n"
+        'uv run uvicorn main:app --host 0.0.0.0 --port 8000'
+    )
